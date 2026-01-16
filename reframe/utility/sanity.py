@@ -593,6 +593,77 @@ def reference_bounds(ref, lower_thres=None, upper_thres=None):
     return lower, upper
 
 
+def reference_bounds_tiers(ref, lower_thres = [None], upper_thres = [None]):
+    '''Calculate the absolute performance tier bounds from their fractional values.
+
+    See :func:`assert_reference_tiers` for more details.
+    '''
+
+    # None of the lower thresholds are None i.e. -inf
+    if all(l is not None for l in lower_thres):
+        if ref > 0:
+            lower_thres_limit = -1
+        elif ref == 0:
+            lower_thres_limit = -math.inf
+        else:
+            lower_thres_limit = None
+        
+        try:
+            evaluate(assert_bounded(min(lower_thres), lower_thres_limit, 0))
+        except SanityError:
+            raise SanityError(f'invalid low threshold values: {lower_thres}') from None
+    
+    # None of the upper thresholds are None i.e. +inf
+    if all(u is not None for u in upper_thres):
+        if ref > 0:
+            upper_thres_limit = None
+        elif ref == 0:
+            upper_thres_limit = math.inf
+        else:
+            upper_thres_limit = 1
+        
+        try:
+            evaluate(assert_bounded(max(upper_thres), 0, upper_thres_limit))
+        except SanityError:
+            raise SanityError(f'invalid high threshold values: {upper_thres}') from None
+    
+    # Convert a relative fractional threshold to an actual boundary value
+    def calc_bound(thres):
+        if thres is None:
+            return None
+
+        # Inverse threshold if ref < 0
+        if ref < 0:
+            thres = -thres
+
+        return ref * (1 + thres)
+
+    lower = []
+    upper = []
+
+    # Populate lower and upper lists of boundary values
+    if ref != 0:
+        for l in lower_thres:
+            lower.append(calc_bound(l))
+        for u in upper_thres:
+            upper.append(calc_bound(u))
+    else:
+        for l in lower_thres:
+            lower.append(l)
+        for u in upper_thres:
+            upper.append(l)
+
+    # Convert None entries to +/- infinity
+    for idx, l in enumerate(lower):
+        if l is None:
+            lower[idx] = -math.inf
+    for idx, u in enumerate(upper):
+        if u is None:
+            upper[idx] = math.inf
+
+    return lower, upper
+
+
 @deferrable
 def assert_reference(val, ref, lower_thres=None, upper_thres=None, msg=None):
     '''Assert that value ``val`` respects the reference value ``ref``.
@@ -622,6 +693,85 @@ def assert_reference(val, ref, lower_thres=None, upper_thres=None, msg=None):
         raise SanityError(_format(error_msg, val, ref, lower, upper)) from None
     else:
         return True
+
+@deferrable
+def assert_reference_tiers(val, ref, lower_thres = [None], upper_thres = [None], msg = None):
+    '''Assert that value ``val`` respects the reference value ``ref``.
+
+    :arg val: The value to check.
+    :arg ref: The reference value.
+    :arg lower_thres: A list of lower thresholds expressed as a decimal
+        fraction of the reference value. Each entry represents the lower value
+        for a specified performance tier. Each value must be in [-1, 1]. For any
+        ``None`` entries, no lower threshold is applied in that tier.
+    :arg upper_thres: A list of upper thresholds expressed as a decimal
+        fraction of the reference value. Each entry represents the upper value
+        for a specified performance tier. Each value must be in [-1, 1]. For any
+        ``None`` entries, no upper threshold is applied in that tier.
+    :arg msg: The error message to use if the assertion fails. You may use
+        ``{0}`` ... ``{N}`` as placeholders for the function arguments.
+    :returns: ``True`` on success.
+    :raises reframe.core.exceptions.SanityError: if assertion fails or if the
+        lower and upper thresholds do not have appropriate values.
+    '''
+
+    # Hold any performance errors (if any)
+    errors = []
+
+    # Overall lower and upper limits
+    lower_limit = lower_thres[0]
+    upper_limit = upper_thres[-1]
+
+    lower, upper = reference_bounds_tiers(ref, lower_thres, upper_thres)
+
+
+    # Check each performance tier, from worst to best performance
+    # For each pair of values, check if `val` is in that tier
+    l = lower_thres[0]
+    u = upper_thres[0]
+    # Check lowest tier (worst failure)
+    try:
+        evaluate(assert_bounded(val, l, u))
+        error_msg = f'{val} is unacceptable with respect to reference value {ref} (l={lower_limit}, u={upper_limit}): outcome = Unacceptable (Failure - Critical)'
+        errors.append(error_msg)
+    except SanityError:
+        l = lower[1]
+        u = upper[1]
+        # Check second-lowest tier (less serious failure)
+        try:
+            evaluate(assert_bounded(val, l, u))
+            error_msg = f'{val} is degraded with respect to reference value {ref} (l={lower_limit}, u={upper_limit}): outcome = Degraded (Failure - Substandard)'
+            errors.append(error_msg)
+        except SanityError:
+            l = lower[2]
+            u = upper[2]
+            # Check second-best tier (less optimal success)
+            try:
+                evaluate(assert_bounded(val, l, u))
+            except SanityError:
+                l = lower[3]
+                u = upper[3]
+                # Check best tier (optimal success)
+                try:
+                    evaluate(assert_bounded(val, l, u))
+                except SanityError:
+                    error_msg = '{0} is beyond reference value {1} (l={2}, u={3}): outcome = Out of Range'
+                    raise SanityError(_format(error_msg, val, ref, lower[0], upper[-1])) from None
+                else:
+                    outcome = 'Optimal (Success - Ideal Performance)'
+                    return True, outcome
+            else:
+                outcome = 'Acceptable (Success - Bare Minimum)'
+                return True, outcome
+
+    # Raise error if any of the above checks failed
+    if errors:
+        msg = ''
+        if len(errors) > 1:
+            msg += '\n\t'
+        else:
+            msg += ' '
+        raise SanityError(msg + '\n\t'.join(errors))
 
 
 # Pattern matching functions
