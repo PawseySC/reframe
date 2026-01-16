@@ -303,6 +303,8 @@ class RunReport:
         session_uuid = self.__report['session_info']['uuid']
         for runidx, tasks in stats.runs():
             testcases = []
+            num_hard_failures = 0
+            num_soft_failures = 0
             num_failures = 0
             num_aborted = 0
             num_skipped = 0
@@ -353,14 +355,18 @@ class RunReport:
                     entry['build_stderr'] = check.build_stderr.evaluate()
                     entry['build_stdout'] = check.build_stdout.evaluate()
 
-                if t.failed:
+                if t.hard_failed:
+                    num_hard_failures += 1
+                elif t.soft_failed:
+                    num_soft_failures += 1
+                elif t.failed:
                     num_failures += 1
                 elif t.aborted:
                     num_aborted += 1
                 elif t.skipped:
                     num_skipped += 1
 
-                if t.failed or t.aborted:
+                if t.soft_failed or t.hard_failed or t.failed or t.aborted:
                     entry['fail_phase'] = t.failed_stage
                     if t.exc_info is not None:
                         entry['fail_reason'] = what(*t.exc_info)

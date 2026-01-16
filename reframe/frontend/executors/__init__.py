@@ -65,11 +65,26 @@ class TestStats:
             except IndexError:
                 raise StatisticsError(f'no such run: {run}') from None
 
+    def hard_failed(self, run = -1):
+        return [t for t in self.tasks(run) if t.hard_failed]
+    
+    def soft_failed(self, run = -1):
+        return [t for t in self.tasks(run) if t.soft_failed]
+
     def failed(self, run=-1):
         return [t for t in self.tasks(run) if t.failed]
 
     def xfailed(self, run=-1):
         return [t for t in self.tasks(run) if t.xfailed]
+
+    def hard_succeeded(self, run = -1):
+        return [t for t in self.tasks(run) if t.hard_succeeded]
+    
+    def soft_succeeded(self, run = -1):
+        return [t for t in self.tasks(run) if t.soft_succeeded]
+    
+    def succeeded(self, run = -1):
+        return [t for t in self.tasks(run) if t.succeeded]
 
     def xpassed(self, run=-1):
         return [t for t in self.tasks(run) if t.xpassed]
@@ -303,6 +318,21 @@ class RegressionTask:
         return self._exc_info
 
     @property
+    def hard_failed(self):
+        return (self._failed_stage is not None and
+                not self._aborted and not self._skipped and not self._xfailed and
+                self._failed_stage == 'performance' and
+                ('HARD FAIL' in self._exc_info[1].message or 'Unacceptable' in self._exc_info[1].message)
+        )
+    
+    @property
+    def soft_failed(self):
+        return (self._failed_stage is not None and
+                not self._aborted and not self._skipped and not self._xfailed and
+                self._failed_stage == 'performance' and
+                ('SOFT FAIL' in self._exc_info[1].message or ('Degraded' in self._exc_info[1].message and 'Unacceptable' not in self._exc_info[1].message)))
+
+    @property
     def failed(self):
         return (self._failed_stage is not None and
                 not self._aborted and not self._skipped and not self._xfailed)
@@ -315,6 +345,12 @@ class RegressionTask:
     def state(self):
         if self.failed:
             return 'fail'
+
+        if self.hard_failed:
+            return 'hard fail'
+
+        if self.soft_failed:
+            return 'soft fail'
 
         if self.xfailed:
             return 'xfail'
@@ -342,13 +378,26 @@ class RegressionTask:
         return self._failed_stage
 
     @property
+    def hard_succeeded(self):
+        return (self._current_stage in {'finalize', 'cleanup'} and
+                not self._failed_stage == 'cleanup' and
+                getattr(self.check, 'tier', None) == 'HARD PASS')
+    
+    @property
+    def soft_succeeded(self):
+        return (self._current_stage in {'finalize', 'cleanup'} and
+        not self._failed_stage == 'cleanup' and
+        getattr(self.check, 'tier', None) == 'SOFT PASS')
+
+    @property
     def succeeded(self):
         return (self._current_stage in {'finalize', 'cleanup'} and
-                not self._failed_stage == 'cleanup')
+                not self._failed_stage == 'cleanup' and
+                not self.hard_succeeded and not self.soft_succeeded)
 
     @property
     def completed(self):
-        return self.failed or self.succeeded or self.xfailed
+        return (self.hard_failed or self.soft_failed or self.failed) or (self.hard_succeeded or self.soft_succeeded or self.succeeded) or self.xfailed
 
     @property
     def aborted(self):
@@ -370,8 +419,16 @@ class RegressionTask:
     def result(self):
         if self.succeeded:
             return 'pass'
+        elif self.hard_succeeded:
+            return 'hard pass'
+        elif self.soft_succeeded:
+            return 'soft pass'
         elif self.failed:
             return 'fail'
+        elif self.hard_failed:
+            return 'hard fail'
+        elif self.soft_failed:
+            return 'soft fail'
         elif self.xfailed:
             return 'xfail'
         elif self.xpassed:
@@ -421,7 +478,7 @@ class RegressionTask:
                     with runtime.temp_config(self.testcase.partition.fullname):
                         return fn(*args, **kwargs)
         except SkipTestError as e:
-            if not self.succeeded:
+            if not (self.hard_succeeded or self.soft_succeeded or self.succeeded):
                 # Only skip a test if it hasn't finished yet;
                 # This practically ignores skipping during the cleanup phase
                 self.skip()
@@ -731,7 +788,9 @@ class Runner:
 
             self._runall(testcases)
             if (self._max_retries and
-                len(self._stats.failed()) <= self._retries_threshold):
+                (len(self._stats.hard_failed()) <= self._retries_threshold) or 
+                (len(self._stats.soft_failed()) <= self._retries_threshold) or
+                (len(self._stats.failed()) <= self._retries_threshold)):
                 restored_cases = restored_cases or []
                 self._retry_failed(testcases + restored_cases)
 
@@ -755,12 +814,25 @@ class Runner:
             # Print the summary line
             runid = None if self._global_stats else -1
             num_aborted = len(self._stats.aborted(runid))
+            num_hard_failures = len(self._stats.hard_failed(runid))
+            num_soft_failures = len(self._stats.soft_failed(runid))
             num_failures = len(self._stats.failed(runid))
-            if num_failures > 0:
+            num_hard_successes = len(self._stats.hard_succeeded(runid))
+            num_soft_successes = len(self._stats.soft_succeeded(runid))
+            num_successes = len(self._stats.succeeded(runid))
+            if num_hard_failures > 0:
+                status = 'UNACCEPTABLE (FAILURE - CRITICAL)'
+            elif num_soft_failures > 0:
+                status = 'DEGRADED (FAILURE - SUBSTANDARD)'
+            elif num_failures > 0:
                 status = 'FAILED'
             elif num_aborted > 0:
                 status = 'ABORTED'
-            else:
+            elif num_soft_successes > 0:
+                status = 'ACCEPTABLE (SUCCESS - BARE MINIMUM)'
+            elif num_hard_successes > 0:
+                status = 'OPTIMAL (SUCCESS - IDEAL PERFORMANCE)'
+            elif num_successes > 0:
                 status = 'PASSED'
 
             runid = None if self._global_stats else 0
