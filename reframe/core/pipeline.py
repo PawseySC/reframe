@@ -1625,6 +1625,15 @@ class RegressionTest(RegressionTestPlugin, jsonext.JSONSerializable):
         return self.job.stderr if self.job else None
 
     @property
+    def tier(self):
+        '''
+        The performance tier a recorded performance variable falls into.
+        For tests with multiple performance variables the tier for the test
+        as a whole is the lowest tier among all performance variables
+        '''
+        return getattr(self, '_tier', None)
+
+    @property
     def build_job(self):
         return self._build_job
 
@@ -2485,7 +2494,7 @@ class RegressionTest(RegressionTestPlugin, jsonext.JSONSerializable):
 
                     ref = (0, None, None)
 
-                self._perfvalues[key] = [value, *ref, unit, None]
+                self._perfvalues[key] = [value, *ref, unit, None, None]
 
         if self.is_dry_run():
             return
@@ -2555,7 +2564,7 @@ class RegressionTest(RegressionTestPlugin, jsonext.JSONSerializable):
         # Check the performance variables against their references.
         errors = _PerfErrorBuilder()
         for key, values in self._perfvalues.items():
-            val, ref, low_thres, high_thres, unit, _ = values
+            val, ref, low_thres, high_thres, unit, _, _ = values
 
             # Verify that val is a number
             if not isinstance(val, numbers.Number):
@@ -2565,24 +2574,68 @@ class RegressionTest(RegressionTestPlugin, jsonext.JSONSerializable):
                 )
 
             tag = key.split(':')[-1]
-            try:
-                sn.evaluate(
-                    sn.assert_reference(val, ref, low_thres, high_thres)
-                )
-            except SanityError:
-                if key in xfailures:
-                    errors.add_xfail(xfailures[key])
-                    self._perfvalues[key][-1] = 'xfail'
+            if isinstance(low_thres, list):
+                try:
+                    success, outcome = sn.evaluate(
+                        sn.assert_reference_tiers(
+                            val, ref, low_thres, high_thres,
+                            msg = (f'{tag}={{0}} {unit}, expected {{1}} '
+                                    '(l={2}, u={3})'))
+                    )
+                except SanityError as e:
+                    if key in xfailures:
+                        errors.add_xfail(xfailures[key])
+                        self._perfvalues[key][-1] = 'xfail'
+                        self._perfvalues[key][-2] = 'unexpected fail'
+                    else:
+                        errors.add_error(e.message)
+                        outcome = e.message.split('= ')[-1]
+                        self._perfvalues[key][-2] = outcome
+                        if 'Unacceptable' in outcome or 'Out of Range' in outcome:
+                            self._perfvalues[key][-1] = 'HARD FAIL'
+                        elif 'Degraded' in outcome:
+                            self._perfvalues[key][-1] = 'SOFT FAIL'
                 else:
-                    errors.add_fail(tag, val, unit, ref, low_thres, high_thres)
-                    self._perfvalues[key][-1] = 'fail'
+                    if key in xfailures:
+                        errors.add_xpass(tag, val, unit, ref, low_thres, high_thres)
+                        self._perfvalues[key][-1] = 'xpass'
+                        self._perfvalues[key][-2] = 'unexpected pass'
+                    else:
+                        self._perfvalues[key][-2] = outcome
+                        if 'Acceptable' in outcome:
+                            self._perfvalues[key][-1] = 'SOFT PASS'
+                        elif 'Optimal' in outcome:
+                            self._perfvalues[key][-1] = 'HARD PASS'
             else:
-                if key in xfailures:
-                    errors.add_xpass(tag, val, unit, ref,
-                                     low_thres, high_thres)
-                    self._perfvalues[key][-1] = 'xpass'
+                try:
+                    sn.evaluate(
+                        sn.assert_reference(val, ref, low_thres, high_thres)
+                    )
+                except SanityError:
+                    if key in xfailures:
+                        errors.add_xfail(xfailures[key])
+                        self._perfvalues[key][-1] = 'xfail'
+                    else:
+                        errors.add_fail(tag, val, unit, ref, low_thres, high_thres)
+                        self._perfvalues[key][-1] = 'fail'
                 else:
-                    self._perfvalues[key][-1] = 'pass'
+                    if key in xfailures:
+                        errors.add_xpass(tag, val, unit, ref,
+                                        low_thres, high_thres)
+                        self._perfvalues[key][-1] = 'xpass'
+                    else:
+                        self._perfvalues[key][-1] = 'pass'
+        
+        recorded_tiers = [info[6] for info in self._perfvalues.values()]
+
+        if any(tier == 'HARD FAIL' for tier in recorded_tiers):
+            self._tier = 'HARD FAIL'
+        elif any(tier == 'SOFT FAIL' for tier in recorded_tiers):
+            self._tier = 'SOFT FAIL'
+        elif any(tier == 'SOFT PASS' for tier in recoreded_tiers):
+            self._tier = 'SOFT PASS'
+        elif all(tier == 'HARD PASS' for tier in recorded_tiers):
+            self._tier = 'HARD PASS'
 
         errors.raise_error()
 

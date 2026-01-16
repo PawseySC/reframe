@@ -367,7 +367,7 @@ class CheckFieldFormatter(logging.Formatter):
     def _format_perf(self, perfvars):
         chunks = []
         for var, info in perfvars.items():
-            val, ref, lower, upper, unit, result = info
+            val, ref, lower, upper, unit, result, outcome = info
             record = {
                 'check_perf_var': var.split(':')[-1],
                 'check_perf_value': val,
@@ -375,6 +375,7 @@ class CheckFieldFormatter(logging.Formatter):
                 'check_perf_ref': ref,
                 'check_perf_lower_thres': lower,
                 'check_perf_upper_thres': upper,
+                'check_perf_outcome': outcome,
                 'check_perf_result': result
             }
             try:
@@ -660,7 +661,7 @@ def _record_to_json(record, extras, ignore_keys):
         if k == 'check_perfvalues':
             # Flatten the performance values
             for var, info in v.items():
-                val, ref, lower, upper, unit, result = info
+                val, ref, lower, upper, unit, result, outcome = info
                 name = _sanitize(var.split(':')[-1])
                 json_record[f'check_perf_{name}_value'] = val
                 json_record[f'check_perf_{name}_ref'] = ref
@@ -668,6 +669,7 @@ def _record_to_json(record, extras, ignore_keys):
                 json_record[f'check_perf_{name}_upper_thres'] = upper
                 json_record[f'check_perf_{name}_unit'] = unit
                 json_record[f'check_perf_{name}_result'] = result
+                json_record[f'check_perf_{name}_outcome'] = outcome
         else:
             json_record[k] = v
 
@@ -936,7 +938,7 @@ class LoggerAdapter(logging.LoggerAdapter):
         self.extra['check_partition'] = part.name
         self.extra['check_environ'] = env.name
         self.extra['check_result'] = task.result
-        if not task.succeeded:
+        if not (task.soft_succeeded or task.hard_succeeded or task.succeeded):
             self.extra['check_fail_phase']  = task.failed_stage
             self.extra['check_fail_reason'] = what(*task.exc_info)
         else:
@@ -949,13 +951,14 @@ class LoggerAdapter(logging.LoggerAdapter):
         if self.check.is_performance_check() and multiline:
             # Log one record for each performance variable
             for var, info in self.check.perfvalues.items():
-                val, ref, lower, upper, unit, result = info
+                val, ref, lower, upper, unit, result, outcome = info
                 self.extra['check_perf_var'] = var.split(':')[-1]
                 self.extra['check_perf_value'] = val
                 self.extra['check_perf_ref'] = ref
                 self.extra['check_perf_lower_thres'] = lower
                 self.extra['check_perf_upper_thres'] = upper
                 self.extra['check_perf_unit'] = unit
+                self.extra['check_perf_outcome'] = outcome
                 self.extra['check_perf_result'] = result
                 self.log(level, msg)
         else:
