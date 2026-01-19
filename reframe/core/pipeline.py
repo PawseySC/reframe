@@ -2502,7 +2502,10 @@ class RegressionTest(RegressionTestPlugin, jsonext.JSONSerializable):
 
                     ref = (0, None, None)
 
-                self._perfvalues[key] = [value, *ref, unit, None, None]
+                if rt.runtime().benchmark_mode:
+                    self._perfvalues[key] = [value, *ref, unit, None, None]
+                else:
+                    self._perfvalues[key] = [value, *ref, unit, None]
 
         if self.is_dry_run():
             return
@@ -2572,7 +2575,10 @@ class RegressionTest(RegressionTestPlugin, jsonext.JSONSerializable):
         # Check the performance variables against their references.
         errors = _PerfErrorBuilder()
         for key, values in self._perfvalues.items():
-            val, ref, low_thres, high_thres, unit, _, _ = values
+            if rt.runtime().benchmark_mode:
+                val, ref, low_thres, high_thres, unit, _, _ = values
+            else:
+                val, ref, low_thres, high_thres, unit, _ = values
 
             # Verify that val is a number
             if not isinstance(val, numbers.Number):
@@ -2634,16 +2640,17 @@ class RegressionTest(RegressionTestPlugin, jsonext.JSONSerializable):
                     else:
                         self._perfvalues[key][-1] = 'pass'
         
-        recorded_tiers = [info[-1] for info in self._perfvalues.values()]
+        if isinstance(low_thres, list):
+            recorded_tiers = [info[-1] for info in self._perfvalues.values()]
 
-        if any(tier == 'HARD FAIL' for tier in recorded_tiers):
-            self._tier = 'HARD FAIL'
-        elif any(tier == 'SOFT FAIL' for tier in recorded_tiers):
-            self._tier = 'SOFT FAIL'
-        elif any(tier == 'SOFT PASS' for tier in recorded_tiers):
-            self._tier = 'SOFT PASS'
-        elif all(tier == 'HARD PASS' for tier in recorded_tiers):
-            self._tier = 'HARD PASS'
+            if any(tier == 'HARD FAIL' for tier in recorded_tiers):
+                self._tier = 'HARD FAIL'
+            elif any(tier == 'SOFT FAIL' for tier in recorded_tiers):
+                self._tier = 'SOFT FAIL'
+            elif any(tier == 'SOFT PASS' for tier in recorded_tiers):
+                self._tier = 'SOFT PASS'
+            elif all(tier == 'HARD PASS' for tier in recorded_tiers):
+                self._tier = 'HARD PASS'
 
         errors.raise_error()
 

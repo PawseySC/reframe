@@ -367,17 +367,29 @@ class CheckFieldFormatter(logging.Formatter):
     def _format_perf(self, perfvars):
         chunks = []
         for var, info in perfvars.items():
-            val, ref, lower, upper, unit, result, outcome = info
-            record = {
-                'check_perf_var': var.split(':')[-1],
-                'check_perf_value': val,
-                'check_perf_unit': unit,
-                'check_perf_ref': ref,
-                'check_perf_lower_thres': lower,
-                'check_perf_upper_thres': upper,
-                'check_perf_outcome': outcome,
-                'check_perf_result': result
-            }
+            if len(info) == 7:
+                val, ref, lower, upper, unit, outcome, result = info
+                record = {
+                    'check_perf_var': var.split(':')[-1],
+                    'check_perf_value': val,
+                    'check_perf_unit': unit,
+                    'check_perf_ref': ref,
+                    'check_perf_lower_thres': lower,
+                    'check_perf_upper_thres': upper,
+                    'check_perf_outcome': outcome,
+                    'check_perf_result': result
+                }
+            else:
+                val, ref, lower, upper, unit, result = info
+                record = {
+                    'check_perf_var': var.split(':')[-1],
+                    'check_perf_value': val,
+                    'check_perf_unit': unit,
+                    'check_perf_ref': ref,
+                    'check_perf_lower_thres': lower,
+                    'check_perf_upper_thres': upper,
+                    'check_perf_result': result
+                }
             try:
                 chunks.append(self.__fmtperf % record)
             except ValueError:
@@ -661,7 +673,11 @@ def _record_to_json(record, extras, ignore_keys):
         if k == 'check_perfvalues':
             # Flatten the performance values
             for var, info in v.items():
-                val, ref, lower, upper, unit, result, outcome = info
+                if len(info) == 7:
+                    val, ref, lower, upper, unit, outcome, result = info
+                    json_record[f'check_perf_{name}_outcome'] = outcome
+                else:
+                    val, ref, lower, upper, unit, result = info
                 name = _sanitize(var.split(':')[-1])
                 json_record[f'check_perf_{name}_value'] = val
                 json_record[f'check_perf_{name}_ref'] = ref
@@ -669,7 +685,6 @@ def _record_to_json(record, extras, ignore_keys):
                 json_record[f'check_perf_{name}_upper_thres'] = upper
                 json_record[f'check_perf_{name}_unit'] = unit
                 json_record[f'check_perf_{name}_result'] = result
-                json_record[f'check_perf_{name}_outcome'] = outcome
         else:
             json_record[k] = v
 
@@ -951,14 +966,17 @@ class LoggerAdapter(logging.LoggerAdapter):
         if self.check.is_performance_check() and multiline:
             # Log one record for each performance variable
             for var, info in self.check.perfvalues.items():
-                val, ref, lower, upper, unit, result, outcome = info
+                if len(info) == 7:
+                    val, ref, lower, upper, unit, outcome, result = info
+                    self.extra['check_perf_outcome'] = outcome
+                else:
+                    val, ref, lower, upper, unit, result = info
                 self.extra['check_perf_var'] = var.split(':')[-1]
                 self.extra['check_perf_value'] = val
                 self.extra['check_perf_ref'] = ref
                 self.extra['check_perf_lower_thres'] = lower
                 self.extra['check_perf_upper_thres'] = upper
                 self.extra['check_perf_unit'] = unit
-                self.extra['check_perf_outcome'] = outcome
                 self.extra['check_perf_result'] = result
                 self.log(level, msg)
         else:

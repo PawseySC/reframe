@@ -48,14 +48,20 @@ def _print_perf(task):
         rt.runtime().get_option('general/0/perf_info_level')
     )
     for key, info in perfvars.items():
-        val, ref, lower, upper, unit, outcome, result = info
+        if rt.runtime().benchmark_mode:
+            val, ref, lower, upper, unit, outcome, result = info
+        else:
+            val, ref, lower, upper, unit, result = info
         name = key.split(':')[-1]
 
         # Build reference info string only if reference is defined
         if ref == 0 and lower is None and upper is None:
             msg = f'P: {name}: {val} {unit}'
         else:
-            msg = f'P: {name}: {val} {unit} (r:{ref}, l:{lower}, u:{upper}) Outcome: {outcome}'
+            if rt.runtime().benchmark_mode and outcome is not None:
+                msg = f'P: {name}: {val} {unit} (r:{ref}, l:{lower}, u:{upper}) Result: {result} - {outcome}'
+            else:
+                msg = f'P: {name}: {val} {unit} (r:{ref}, l:{lower}, u:{upper}) Result: {result}'
 
         if result == 'xfail':
             msg = color.colorize(msg, color.MAGENTA)
