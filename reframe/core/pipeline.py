@@ -2632,7 +2632,7 @@ class RegressionTest(RegressionTestPlugin, jsonext.JSONSerializable):
             self._tier = 'HARD FAIL'
         elif any(tier == 'SOFT FAIL' for tier in recorded_tiers):
             self._tier = 'SOFT FAIL'
-        elif any(tier == 'SOFT PASS' for tier in recoreded_tiers):
+        elif any(tier == 'SOFT PASS' for tier in recorded_tiers):
             self._tier = 'SOFT PASS'
         elif all(tier == 'HARD PASS' for tier in recorded_tiers):
             self._tier = 'HARD PASS'

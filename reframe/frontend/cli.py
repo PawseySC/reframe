@@ -1744,7 +1744,7 @@ def main():
                 report.update_extras(extras)
 
             # Print a retry report if we did any retries
-            if options.max_retries and runner.stats.failed(run=0):
+            if options.max_retries and (runner.stats.hard_failed(run=0) or runner.stats.soft_failed(run=0) or runner.stats.failed(run=0)):
                 printer.retry_report(report)
 
             # Print a failure report in case of failures.
@@ -1752,7 +1752,7 @@ def main():
             # all runs, else (i.e., `--max-retries`) only the last run.
             success = True
             runid = None if options.duration or options.reruns else -1
-            if runner.stats.failed(run=runid):
+            if runner.stats.hard_failed(run=runid) or runner.stats.soft_failed(run=runid) or runner.stats.failed(run=runid):
                 success = False
                 printer.failure_report(
                     report,
