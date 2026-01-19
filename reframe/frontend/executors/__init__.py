@@ -832,7 +832,7 @@ class Runner:
                 status = 'ACCEPTABLE (SUCCESS - BARE MINIMUM)'
             elif num_hard_successes > 0:
                 status = 'OPTIMAL (SUCCESS - IDEAL PERFORMANCE)'
-            elif num_successes > 0:
+            else:
                 status = 'PASSED'
 
             runid = None if self._global_stats else 0
