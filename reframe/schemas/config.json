@@ -503,6 +503,7 @@
             "items": {
                 "type": "object",
                 "properties": {
+                    "benchmark_mode": {"type": "boolean"},
                     "check_search_path": {
                         "type": "array",
                         "items": {"type": "string"}
@@ -595,6 +596,7 @@
         "environments/extras": {},
         "environments/features": [],
         "environments/target_systems": ["*"],
+        "general/benchmark_mode": false,
         "general/check_search_path": ["${RFM_INSTALL_PREFIX}/checks/"],
         "general/check_search_recursive": false,
         "general/clean_stagedir": true,

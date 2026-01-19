@@ -1453,6 +1453,14 @@ class RegressionTest(RegressionTestPlugin, jsonext.JSONSerializable):
         :type: :class:`reframe.core.systems.System`.
         '''
         return rt.runtime().system
+    
+    @property
+    def benchmark_mode(self):
+        '''Mark all tests in this session to be run as benchmark tests
+        Tests run as benchmark tests have four performance tiers and define
+        multiple different failure and success test outcomes.
+        '''
+        return rt.runtime().benchmark_mode
 
     @property
     def variant_num(self):

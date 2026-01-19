@@ -33,6 +33,7 @@ class RuntimeContext:
         self._current_run = 0
         self._timestamp = time.localtime()
         self._use_timestamps = use_timestamps
+        self._benchmark_mode = False
 
     def _makedir(self, *dirs, wipeout=False):
         ret = os.path.join(*dirs)
@@ -78,6 +79,10 @@ class RuntimeContext:
         :type: :class:`reframe.core.systems.System`
         '''
         return self._system
+
+    @property
+    def benchmark_mode(self):
+        return self.site_config.get('general/benchmark_mode')
 
     @property
     def prefix(self):

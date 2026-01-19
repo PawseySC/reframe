@@ -597,6 +597,12 @@ def main():
         '--skip-system-check', action='store_true',
         help='Skip system check'
     )
+    run_options.add_argument(
+        '--benchmark-mode', action = 'store_true',
+        envvar='RFM_BENCHMARK_MODE',
+        configvar='general/benchmark_mode',
+        help = 'Run tests as benchmark tests with more performance tiers and possible test outcomes'
+    )
 
     # Environment options
     env_options.add_argument(
