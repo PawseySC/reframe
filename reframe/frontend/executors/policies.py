@@ -48,14 +48,14 @@ def _print_perf(task):
         rt.runtime().get_option('general/0/perf_info_level')
     )
     for key, info in perfvars.items():
-        val, ref, lower, upper, unit, result = info
+        val, ref, lower, upper, unit, outcome, result = info
         name = key.split(':')[-1]
 
         # Build reference info string only if reference is defined
         if ref == 0 and lower is None and upper is None:
             msg = f'P: {name}: {val} {unit}'
         else:
-            msg = f'P: {name}: {val} {unit} (r:{ref}, l:{lower}, u:{upper})'
+            msg = f'P: {name}: {val} {unit} (r:{ref}, l:{lower}, u:{upper}) Outcome: {outcome}'
 
         if result == 'xfail':
             msg = color.colorize(msg, color.MAGENTA)
@@ -195,6 +195,12 @@ class _PolicyEventListener(TaskEventListener):
         msg = f'{task.info()}'
         if task.failed_stage == 'cleanup':
             self.printer.status('ERROR', msg, just='right')
+        elif task.failed_stage == 'performance':
+            failure_msg = task.exc_info[1].message
+            if 'Unacceptable' in failure_msg:
+                self.printer.status('UNACCEPTABLE (FAILURE - CRITICAL)', msg, just = 'right')
+            elif 'Degraded' in failure_msg:
+                self.printer.status('DEGRADED (FAILURE - SUBSTANDARD)', msg, just = 'right')
         else:
             self.printer.status('FAIL', msg, just='right')
 
@@ -223,7 +229,13 @@ class _PolicyEventListener(TaskEventListener):
 
     def on_task_success(self, task):
         msg = f'{task.info()}'
-        self.printer.status('OK', msg, just='right')
+        if task.succeeded:
+            printer_status = 'OK'
+        elif task.hard_succeeded:
+            printer_status = 'OPTIMAL (SUCCESS - IDEAL PERFORMANCE)'
+        elif task.soft_succeeded:
+            printer_status = 'ACCEPTABLE (SUCCESS - BARE MINIMUM)'
+        self.printer.status(printer_status, msg, just='right')
         _print_perf(task)
         _print_pipeline_timings(task)
 

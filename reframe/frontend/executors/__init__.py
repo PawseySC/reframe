@@ -845,6 +845,7 @@ class Runner:
                 f'Ran {total_completed}/{total_run}'
                 f' test case(s) from {num_checks} check(s) '
                 f'({num_failures} failure(s), '
+                f'({num_hard_failures} hard failure(s), {num_soft_failures} soft failure(s), {num_failures} failure(s), '
                 f'{total_xfailed} expected failure(s), '
                 f'{total_skipped} skipped, '
                 f'{num_aborted} aborted)',
@@ -854,8 +855,7 @@ class Runner:
 
     def _retry_failed(self, cases):
         def _failed_or_deps():
-            return self._stats.failed() + [t for t in self._stats.skipped()
-                                           if t.failed_deps]
+            return self._stats.hard_failed() + self._stats.soft_failed() + self._stats.failed() + [t for t in self._stats.skipped() if t.failed_deps]
 
         rt = runtime.runtime()
         failures = _failed_or_deps()

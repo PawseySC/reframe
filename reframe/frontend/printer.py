@@ -60,18 +60,20 @@ class PrettyPrinter:
 
         status_stripped = status.strip()
         if self.colorize:
-            if status_stripped in ('ABORT', 'ABORTED', 'DRY', 'SKIP'):
+            if status_stripped in ('ABORT', 'ABORTED', 'DRY', 'SKIP', 'ACCEPTABLE (SUCCESS - BARE MINIMUM)'):
                 status = color.colorize(status, color.YELLOW)
-            elif status_stripped in ('FAIL', 'FAILED', 'ERROR', 'XPASS'):
+            elif status_stripped in ('FAIL', 'FAILED', 'ERROR', 'XPASS', 'UNACCEPTABLE (FAILURE - CRITICAL)'):
                 status = color.colorize(status, color.RED)
-            elif status_stripped == 'XFAIL':
+            elif status_stripped in ('XFAIL', 'DEGRADED (FAILURE - SUBSTANDARD)'):
                 status = color.colorize(status, color.MAGENTA)
             else:
                 status = color.colorize(status, color.GREEN)
 
         final_msg = f'[ {status} ] '
-        if status_stripped in {'ABORT', 'OK', 'SKIP', 'FAIL', 'XFAIL',
-                               'XPASS', 'ERROR'}:
+        if status_stripped in {
+            'ABORT', 'OK', 'SKIP', 'FAIL', 'XFAIL', 'XPASS', 'ERROR'
+            'UNACCEPTABLE (FAILURE - CRITICAL)', 'DEGRADED (FAILURE - SUBSTANDARD)',
+            'ACCEPTABLE (SUCCESS - BARE MINIMUM)', 'OPTIMAL (SUCCESS - IDEAL PERFORMANCE)'}:
             if self._progress_count < self._progress_total:
                 self._progress_count += 1
 
@@ -180,7 +182,7 @@ class PrettyPrinter:
                 continue
 
             for r in run_info['testcases']:
-                if r['result'] in {'pass', 'xfail', 'abort',
+                if r['result'] in {'hard pass', 'soft pass', 'pass', 'xfail', 'abort',
                                    'skip', 'fail_deps'}:
                     continue
 
