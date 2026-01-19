@@ -2511,21 +2511,21 @@ class RegressionTest(RegressionTestPlugin, jsonext.JSONSerializable):
                 return (f'{tag}={val} {unit}, expected {ref} '
                         f'(l={lower}, u={upper})')
 
-            def _add_error(self, kind, msg):
+            def add_error(self, kind, msg):
                 self._messages.setdefault(kind, [])
                 self._messages[kind].append(msg)
                 self._total_messages += 1
 
             def add_fail(self, tag, val, unit, ref, low_thr, high_thr):
                 msg = self._fmtperf(tag, val, unit, ref, low_thr, high_thr)
-                self._add_error('fail', msg)
+                self.add_error('fail', msg)
 
             def add_xfail(self, reason):
-                self._add_error('xfail', reason)
+                self.add_error('xfail', reason)
 
             def add_xpass(self, tag, val, unit, ref, low_thr, high_thr):
                 msg = self._fmtperf(tag, val, unit, ref, low_thr, high_thr)
-                self._add_error('xpass', msg)
+                self.add_error('xpass', msg)
 
             def raise_error(self):
                 '''Raise the right error based on collected data'''
@@ -2588,7 +2588,7 @@ class RegressionTest(RegressionTestPlugin, jsonext.JSONSerializable):
                         self._perfvalues[key][-1] = 'xfail'
                         self._perfvalues[key][-2] = 'unexpected fail'
                     else:
-                        errors.add_error(e.message)
+                        errors.add_error('fail', e.message)
                         outcome = e.message.split('= ')[-1]
                         self._perfvalues[key][-2] = outcome
                         if 'Unacceptable' in outcome or 'Out of Range' in outcome:
@@ -2626,7 +2626,7 @@ class RegressionTest(RegressionTestPlugin, jsonext.JSONSerializable):
                     else:
                         self._perfvalues[key][-1] = 'pass'
         
-        recorded_tiers = [info[6] for info in self._perfvalues.values()]
+        recorded_tiers = [info[-1] for info in self._perfvalues.values()]
 
         if any(tier == 'HARD FAIL' for tier in recorded_tiers):
             self._tier = 'HARD FAIL'

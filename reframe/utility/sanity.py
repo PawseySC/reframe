@@ -727,8 +727,8 @@ def assert_reference_tiers(val, ref, lower_thres = [None], upper_thres = [None],
 
     # Check each performance tier, from worst to best performance
     # For each pair of values, check if `val` is in that tier
-    l = lower_thres[0]
-    u = upper_thres[0]
+    l = lower[0]
+    u = upper[0]
     # Check lowest tier (worst failure)
     try:
         evaluate(assert_bounded(val, l, u))
