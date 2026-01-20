@@ -196,11 +196,15 @@ class _PolicyEventListener(TaskEventListener):
         if task.failed_stage == 'cleanup':
             self.printer.status('ERROR', msg, just='right')
         elif task.failed_stage == 'performance':
-            failure_msg = task.exc_info[1].message
-            if 'Unacceptable' in failure_msg:
-                self.printer.status('UNACCEPTABLE (FAILURE - CRITICAL)', msg, just = 'right')
-            elif 'Degraded' in failure_msg:
-                self.printer.status('DEGRADED (FAILURE - SUBSTANDARD)', msg, just = 'right')
+            exc = task.exc_info[1]
+            failure_msg = getattr(exc, "message", str(exc))
+            if failure_msg == exc:
+                self.printer.status('FAIL', failure_msg, just='right')
+            else:
+                if 'Unacceptable' in failure_msg:
+                    self.printer.status('UNACCEPTABLE (FAILURE - CRITICAL)', msg, just = 'right')
+                elif 'Degraded' in failure_msg:
+                    self.printer.status('DEGRADED (FAILURE - SUBSTANDARD)', msg, just = 'right')
         else:
             self.printer.status('FAIL', msg, just='right')
 

@@ -319,18 +319,28 @@ class RegressionTask:
 
     @property
     def hard_failed(self):
-        return (self._failed_stage is not None and
-                not self._aborted and not self._skipped and not self._xfailed and
-                self._failed_stage == 'performance' and
-                ('HARD FAIL' in self._exc_info[1].message or 'Unacceptable' in self._exc_info[1].message)
-        )
+        exc = self._exc_info[1]
+        failure_msg = getattr(exc, "message", str(exc))
+        if failure_msg == exc:
+            return False
+        else:
+            return (self._failed_stage is not None and
+                    not self._aborted and not self._skipped and not self._xfailed and
+                    self._failed_stage == 'performance' and
+                    ('HARD FAIL' in failure_msg or 'Unacceptable' in failure_msg)
+            )
     
     @property
     def soft_failed(self):
-        return (self._failed_stage is not None and
-                not self._aborted and not self._skipped and not self._xfailed and
-                self._failed_stage == 'performance' and
-                ('SOFT FAIL' in self._exc_info[1].message or ('Degraded' in self._exc_info[1].message and 'Unacceptable' not in self._exc_info[1].message)))
+        exc = self._exc_info[1]
+        failure_msg = getattr(exc, "message", str(exc))
+        if failure_msg == exc:
+            return False
+        else:
+            return (self._failed_stage is not None and
+                    not self._aborted and not self._skipped and not self._xfailed and
+                    self._failed_stage == 'performance' and
+                    ('SOFT FAIL' in failure_msg or ('Degraded' in failure_msg and 'Unacceptable' not in failure_msg)))
 
     @property
     def failed(self):
@@ -844,7 +854,6 @@ class Runner:
                 status,
                 f'Ran {total_completed}/{total_run}'
                 f' test case(s) from {num_checks} check(s) '
-                f'({num_failures} failure(s), '
                 f'({num_hard_failures} hard failure(s), {num_soft_failures} soft failure(s), {num_failures} failure(s), '
                 f'{total_xfailed} expected failure(s), '
                 f'{total_skipped} skipped, '
