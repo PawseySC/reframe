@@ -204,7 +204,7 @@ class _PolicyEventListener(TaskEventListener):
         elif task.failed_stage == 'performance':
             exc = task.exc_info[1]
             failure_msg = getattr(exc, "message", str(exc))
-            if failure_msg == exc:
+            if failure_msg == exc.message:
                 self.printer.status('FAIL', failure_msg, just='right')
             else:
                 if 'Unacceptable' in failure_msg:
