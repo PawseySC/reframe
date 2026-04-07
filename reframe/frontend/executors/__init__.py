@@ -850,16 +850,28 @@ class Runner:
             total_completed = len(self._stats.completed(runid))
             total_skipped = len(self._stats.skipped(runid))
             total_xfailed = len(self._stats.xfailed(runid))
-            self._printer.status(
-                status,
-                f'Ran {total_completed}/{total_run}'
-                f' test case(s) from {num_checks} check(s) '
-                f'({num_hard_failures} hard failure(s), {num_soft_failures} soft failure(s), {num_failures} failure(s), '
-                f'{total_xfailed} expected failure(s), '
-                f'{total_skipped} skipped, '
-                f'{num_aborted} aborted)',
-                just='center'
-            )
+            if runtime.runtime().benchmark_mode:
+                self._printer.status(
+                    status,
+                    f'Ran {total_completed}/{total_run}'
+                    f' test case(s) from {num_checks} check(s) '
+                    f'({num_hard_failures} hard failure(s), {num_soft_failures} soft failure(s), {num_failures} failure(s), '
+                    f'{total_xfailed} expected failure(s), '
+                    f'{total_skipped} skipped, '
+                    f'{num_aborted} aborted)',
+                    just='center'
+                )
+            else:
+                self._printer.status(
+                    status,
+                    f'Ran {total_completed}/{total_run}'
+                    f' test case(s) from {num_checks} check(s) '
+                    f'({num_failures} failure(s), '
+                    f'{total_xfailed} expected failure(s), '
+                    f'{total_skipped} skipped, '
+                    f'{num_aborted} aborted)',
+                    just='center'
+                )
             self._printer.timestamp('Finished on', 'short double line')
 
     def _retry_failed(self, cases):
