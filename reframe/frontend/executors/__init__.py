@@ -345,7 +345,7 @@ class RegressionTask:
     @property
     def failed(self):
         return (self._failed_stage is not None and
-                not self._aborted and not self._skipped and not self._xfailed)
+                not self._aborted and not self._skipped and not self._xfailed and not self.soft_failed and not self.hard_failed)
 
     @property
     def failed_deps(self):
