@@ -340,7 +340,7 @@ class CheckFieldFormatter(logging.Formatter):
         super().__init__(fmt, datefmt, style,
                          validate=(fmt != '%(check_#ALL)s'))
         self.__fmt = fmt
-        self.__fmtperf = perffmt[:-1] if perffmt else ''
+        self.__fmtperf = perffmt if perffmt else ''
         self.__specs = re.findall(r'\%\((\S+?)\)s', fmt)
         self.__delim = perffmt[-1] if perffmt else ''
         self.__expand_vars = '%(check_#ALL)s' in self.__fmt
