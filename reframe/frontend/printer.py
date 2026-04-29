@@ -71,7 +71,7 @@ class PrettyPrinter:
 
         final_msg = f'[ {status} ] '
         if status_stripped in {
-            'ABORT', 'OK', 'SKIP', 'FAIL', 'XFAIL', 'XPASS', 'ERROR'
+            'ABORT', 'OK', 'SKIP', 'FAIL', 'XFAIL', 'XPASS', 'ERROR',
             'UNACCEPTABLE (FAILURE - CRITICAL)', 'DEGRADED (FAILURE - SUBSTANDARD)',
             'ACCEPTABLE (SUCCESS - BARE MINIMUM)', 'OPTIMAL (SUCCESS - IDEAL PERFORMANCE)'}:
             if self._progress_count < self._progress_total:
