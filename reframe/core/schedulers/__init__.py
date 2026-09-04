@@ -242,6 +242,18 @@ class Job(jsonext.JSONSerializable, metaclass=JobMeta):
     #: .. versionadded:: 3.11.0
     num_tasks_per_node = variable(int, type(None), value=None)
 
+    #: Number of GPUs per node for this job.
+    #:
+    #: :type: integral or :class:`NoneType`
+    #: :default: ``None``
+    #:
+    #: .. note::
+    #:    This attribute is set by the framework just before submitting the job
+    #:    based on the test information.
+    #:
+    #: .. versionadded:: 3.11.0
+    num_gpus_per_node = variable(int, type(None), value=None)
+
     #: Number of tasks per core for this job.
     #:
     #: :type: integral or :class:`NoneType`
@@ -277,6 +289,42 @@ class Job(jsonext.JSONSerializable, metaclass=JobMeta):
     #:
     #: .. versionadded:: 3.11.0
     num_cpus_per_task = variable(int, type(None), value=None)
+
+    #: Number of GPUs for this job.
+    #:
+    #: :type: integral or :class:`NoneType`
+    #: :default: ``None``
+    #:
+    #: .. note::
+    #:    This attribute is set by the framework just before submitting the job
+    #:    based on the test information.
+    #:
+    #: .. versionadded:: 3.11.0
+    num_gpus = variable(int, type(None), value=None)
+
+    #: Generic consumable resources per node for this job.
+    #:
+    #: :type: string or :class:`NoneType`
+    #: :default: ``None``
+    #:
+    #: .. note::
+    #:    This attribute is set by the framework just before submitting the job
+    #:    based on the test information.
+    #:
+    #: .. versionadded:: 3.11.0
+    gres = variable(str, type(None), value=None)
+
+    #: Number of GPUs per task for this job.
+    #:
+    #: :type: integral or :class:`NoneType`
+    #: :default: ``None``
+    #:
+    #: .. note::
+    #:    This attribute is set by the framework just before submitting the job
+    #:    based on the test information.
+    #:
+    #: .. versionadded:: 3.11.0
+    num_gpus_per_task = variable(int, type(None), value=None)
 
     #: Enable SMT for this job.
     #:

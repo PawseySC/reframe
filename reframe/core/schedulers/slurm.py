@@ -175,6 +175,10 @@ class SlurmJobScheduler(sched.JobScheduler):
             self._format_option(job.num_tasks_per_socket,
                                 '--ntasks-per-socket={0}'),
             self._format_option(job.num_cpus_per_task, '--cpus-per-task={0}'),
+            self._format_option(job.num_gpus, '--gpus={0}'),
+            self._format_option(job.num_gpus_per_node, '--gpus-per-node={0}'),
+            self._format_option(job.num_gpus_per_task, '--gpus-per-task={0}'),
+            self._format_option(job.gres, '--gres={0}')
         ]
 
         # Determine if job refers to a Slurm job array, by looking into the

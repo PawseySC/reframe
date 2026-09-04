@@ -651,15 +651,9 @@ class RegressionTest(RegressionTestPlugin, jsonext.JSONSerializable):
     num_tasks_per_node = variable(int, type(None), value=None)
 
     #: Number of GPUs per node required by this test.
-    #: This attribute is translated internally to the ``_rfm_gpu`` resource.
-    #: For more information on test resources, have a look at the
-    #: :attr:`extra_resources` attribute.
     #:
     #: :type: integral or :const:`None`
     #: :default: :const:`None`
-    #:
-    #: .. versionchanged:: 4.0.0
-    #:    The default value changed to :const:`None`.
     num_gpus_per_node = variable(int, type(None), value=None)
 
     #: Number of CPUs per task required by this test.
@@ -685,6 +679,30 @@ class RegressionTest(RegressionTestPlugin, jsonext.JSONSerializable):
     #: :type: integral or :class:`None`
     #: :default: :class:`None`
     num_tasks_per_socket = variable(int, type(None), value=None)
+
+    #: Number of GPUs for this test.
+    #:
+    #: Ignored if :class:`None`.
+    #:
+    #: :type: integral or :class:`None`
+    #: :default: :class:`None`
+    num_gpus = variable(int, type(None), value=None)
+
+    #: Generic consumable resources per node required by this test.
+    #:
+    #: Ignored if :class:`None`.
+    #:
+    #: :type: str or :class:`None`
+    #: :default: :class:`None`
+    gres = variable(str, type(None), value=None)
+
+    #: Number of GPUs per task required by this test.
+    #:
+    #: Ignored if :class:`None`.
+    #:
+    #: :type: integral or :class:`None`
+    #: :default: :class:`None`
+    num_gpus_per_task = variable(int, type(None), value=None)
 
     #: Specify whether this tests needs simultaneous multithreading enabled.
     #:
@@ -2174,6 +2192,10 @@ class RegressionTest(RegressionTestPlugin, jsonext.JSONSerializable):
         self.job.num_tasks_per_core = self.num_tasks_per_core
         self.job.num_tasks_per_socket = self.num_tasks_per_socket
         self.job.num_cpus_per_task = self.num_cpus_per_task
+        self.job.num_gpus = self.num_gpus
+        self.job.num_gpus_per_node = self.num_gpus_per_node
+        self.job.num_gpus_per_task = self.num_gpus_per_task
+        self.job.gres = self.gres
         self.job.use_smt = self.use_multithreading
         self.job.time_limit = (self.time_limit or rt.runtime().get_option(
             f'systems/0/partitions/@{self.current_partition.name}/time_limit')
@@ -2206,12 +2228,6 @@ class RegressionTest(RegressionTestPlugin, jsonext.JSONSerializable):
             cp_env = _get_cp_env()
             if cp_env:
                 environs.insert(2, cp_env)
-
-        # num_gpus_per_node is a managed resource
-        if self.num_gpus_per_node:
-            self.extra_resources.setdefault(
-                '_rfm_gpu', {'num_gpus_per_node': self.num_gpus_per_node}
-            )
 
         # Get job options from managed resources and prepend them to
         # job_opts. We want any user supplied options to be able to
