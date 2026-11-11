@@ -894,6 +894,37 @@ def main():
         type=functools.partial(int, base=8)
     )
     argparser.add_argument(
+        dest='mysql_host',
+        envvar='RFM_MYSQL_HOST',
+        configvar='storage/mysql_host',
+        help='MySQL server hostname'
+    )
+    argparser.add_argument(
+        dest='mysql_user',
+        envvar='RFM_MYSQL_USER',
+        configvar='storage/mysql_user',
+        help='Username used to authenticate with MySQL'
+    )
+    argparser.add_argument(
+        dest='mysql_db_name',
+        envvar='RFM_MYSQL_DATABASE',
+        configvar='storage/mysql_database',
+        help='Name of MySQL database to connect to'
+    )
+    argparser.add_argument(
+        dest='mysql_db_password',
+        envvar='RFM_MYSQL_PASSWORD',
+        configvar='storage/mysql_password',
+        help='Password used to authenticate with MySQL'
+    )
+    argparser.add_argument(
+        dest='mysql_config',
+        envvar='RFM_MYSQL_CONFIG',
+        configvar='storage/mysql_config',
+        help=('Path to a configuration file containing MySQL connection settings '
+              '(HOST, USER, DATABASE, PASSWORD)'
+    )
+    argparser.add_argument(
         dest='syslog_address',
         envvar='RFM_SYSLOG_ADDRESS',
         configvar='logging/handlers_perflog/syslog_address',
