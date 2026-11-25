@@ -149,6 +149,9 @@ class SrunAllocationLauncher(JobLauncher):
             ret += ['--time=%d:%d:%d' % (h, m, s)]
 
         if job.num_tasks:
+            num_tasks_per_node = job.num_tasks_per_node or 1
+            num_nodes = job.num_tasks // num_tasks_per_node
+            ret += ['--nodes=%s' % str(num_nodes)]
             ret += ['--ntasks=%s' % str(job.num_tasks)]
 
         if job.num_tasks_per_node:
@@ -169,6 +172,18 @@ class SrunAllocationLauncher(JobLauncher):
         if job.use_smt is not None:
             hint = 'multithread' if job.use_smt else 'nomultithread'
             ret += ['--hint=%s' % hint]
+
+        if job.gres:
+            ret += ['--gres=%s' % job.gres]
+
+        if job.num_gpus:
+            ret += ['--gpus=%s' % job.num_gpus]
+
+        if job.num_gpus_per_node:
+            ret += ['--gpus-per-node=%s' % job.num_gpus_per_node]
+
+        if job.num_gpus_per_task:
+            ret += ['--gpus-per-task=%s' % job.num_gpus_per_task]
 
         for opt in job.options + job.cli_options:
             if opt.startswith('#'):

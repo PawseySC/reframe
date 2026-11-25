@@ -174,12 +174,11 @@ class SlurmJobScheduler(sched.JobScheduler):
                                 '--ntasks-per-core={0}'),
             self._format_option(job.num_tasks_per_socket,
                                 '--ntasks-per-socket={0}'),
-            self._format_option(job.num_cpus_per_task, '--cpus-per-task={0}'),
             self._format_option(job.num_gpus, '--gpus={0}'),
-            self._format_option(job.num_gpus_per_node, '--gpus-per-node={0}'),
-            self._format_option(job.num_gpus_per_task, '--gpus-per-task={0}'),
             self._format_option(job.gres, '--gres={0}')
         ]
+        if 'gpu' not in job.sched_access[0]:
+            preamble += [self._format_option(job.num_cpus_per_task, '--cpus-per-task={0}')]
 
         # Determine if job refers to a Slurm job array, by looking into the
         # job.options and job.cli_options
@@ -218,6 +217,9 @@ class SlurmJobScheduler(sched.JobScheduler):
             hint = None
         else:
             hint = 'multithread' if job.use_smt else 'nomultithread'
+            if job.use_smt:
+                threads_per_core = 2
+                preamble.append(self._format_option(threads_per_core, '--threads-per-core={0}'))
 
         if job.pin_nodes:
             preamble.append(
